@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name          = "bower-rails-pt"
-  s.homepage      = "https://github.com/cj/bower-rails"
+  s.homepage      = "https://github.com/cj/bower-rails-pt"
   s.version       = "0.5.0"
   s.date          = "2013-09-23"
   s.summary       = "Bower for Rails"

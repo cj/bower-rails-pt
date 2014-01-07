@@ -1,8 +1,8 @@
 Gem::Specification.new do |s|
-  s.name          = "bower-rails-pt"
-  s.homepage      = "https://github.com/cj/bower-rails-pt"
-  s.version       = "0.5.0"
-  s.date          = "2013-09-23"
+  s.name          = "bower-rails"
+  s.homepage      = "https://github.com/cj/bower-rails"
+  s.version       = "0.6.1"
+  s.date          = "2013-12-12"
   s.summary       = "Bower for Rails"
   s.description   = "Rails integration for bower."
   s.authors       = ["Ross Harrison"]
@@ -14,4 +14,5 @@ Gem::Specification.new do |s|
 
   s.add_development_dependency "rspec"
   s.add_development_dependency "rake"
+  s.add_development_dependency "coveralls"
 end

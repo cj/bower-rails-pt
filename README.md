@@ -8,7 +8,9 @@ bower-rails
 [![Coverage Status](https://coveralls.io/repos/42dev/bower-rails/badge.png)](https://coveralls.io/r/42dev/bower-rails)
 
 Bower support for Rails projects. Dependency file is bower.json in Rails root dir or Bowerfile if you use DSL.
-Check out Changelog.md for the latest changes and releases.
+Check out [changelog][] for the latest changes and releases.
+
+[changelog]: https://github.com/42dev/bower-rails/blob/master/CHANGELOG.md
 
 **Requirements**
 
@@ -20,20 +22,20 @@ Check out Changelog.md for the latest changes and releases.
 in Gemfile
 
 ``` Ruby
-	gem "bower-rails", "~> 0.5.0"
-```
-
-**Initialize**
-
-To add an empty bower.json file to the project root.
-
-``` Bash
-	rails g bower_rails:initialize
+  gem "bower-rails", "~> 0.6.1"
 ```
 
 ##JSON configuration
 
-The bower.json file is two seperate bower [component.js](https://github.com/twitter/bower#defining-a-package) files. Defining a package in lib and vendor will install those packages to the corresponding directories.
+Bower-rails now supports the standard [bower package](https://github.com/bower/bower#defining-a-package) format out-of-the-box. Simply place your bower.json file the Rails root directory to start. Using the standard format will default all bower components to be installed under the `vendor` directory.
+
+To install dependencies into both `lib` and `vendor` directories, run the initializer to generate a custom bower.json:
+
+``` Bash
+  rails g bower_rails:initialize
+```
+
+This will generate a special bower.json that combines two standard bower packages into one. Simply specify your dependencies under each folder name to install them into the corresponding directories.
 
 **example bower.json file**
 
@@ -97,6 +99,7 @@ group :lib do
   asset "backbone", "1.2"
 end
 ```
+NOTE: Available groups are `:lib` and `:vendor`. Others are not allowed according to the Rails convention.
 NOTE: All the assets should be stored in `/assets` subdirectory so putting it under `./vendor/js` directory is unavailable
 
 ##Rake tasks
@@ -108,3 +111,20 @@ Once you are done with `bower.json` or `Bowerfile` you can run
 * `rake bower:update` to update js components
 * `rake bower:update:prune` to update components and uninstall extraneous packages
 * `rake bower:list` to list all packages
+* `rake bower:resolve` to resolve [relative asset paths](#relative-asset-paths) in components
+
+##Bower Configuration
+
+If you provide a `.bowerrc` in the rails project root, bower-rails will use it for bower configuration.
+Some .bowerrc options are not supported: `directory`, `cwd`, and `interactive`. Bower-rails
+will ignore the `directory` property and instead will use the automatically generated asset path.
+
+###Bower Installation
+
+[Bower](https://github.com/bower/bower) should be installed using npm. Bower can be installed globally (with `$ npm install -g bower`) or in `node_modules` in the root directory of your project.
+
+##Relative asset paths
+
+Some bower components (eg. [Bootstrap](https://github.com/twbs/bootstrap/blob/0016c17f9307bc71fc96d8d4680a9c861f137cae/dist/css/bootstrap.css#L2263)) have relative urls in the CSS files for imports, images, etc. Rails prefers using [helper methods](http://guides.rubyonrails.org/asset_pipeline.html#coding-links-to-assets) for linking to assets within CSS. Relative paths can cause issues when assets are precompiled for production.
+
+Before the `rake assets:precompile` task is run, the bower assets will be reinstalled with the relative paths replaced with calls to `asset_path` so that all asset links work in production.

@@ -12,7 +12,7 @@ module BowerRails
 
     def initialize
       @dependencies = {}
-      @root_path ||= defined?(Rails) ? Rails.root : Dir.pwd
+      @root_path ||= Dir.pwd
       @assets_path ||= "assets"
     end
 
@@ -25,62 +25,69 @@ module BowerRails
     end
 
     def group(name, options = {}, &block)
-      if custom_assets_path = options[:assets_path]
-        assert_asset_path custom_assets_path
-      end
-      add_group(name, options)
+      options[:assets_path] ||= @assets_path
+      
+      assert_asset_path options[:assets_path]
+      assert_group_name name
+      
+      @current_group = add_group name, options
       yield if block_given?
     end
 
     def asset(name, version = "latest")
-      groups.each do |g|
-        g_norm = normalize_location_path(g.first, group_assets_path(g))
-        @dependencies[g_norm] ||= {}
-        @dependencies[g_norm][name] = version
-      end
-    end
+      group = @current_group ? @current_group : default_group
 
-    def to_json(location)
-      dependencies_to_json @dependencies[normalize_location_path(location)]
+      normalized_group_path = normalize_location_path(group.first, group_assets_path(group))
+      @dependencies[normalized_group_path] ||= {}
+      @dependencies[normalized_group_path][name] = version
     end
 
     def write_bower_json
-      @dependencies.each do |dir,data|
+      @dependencies.each do |dir, data|
         FileUtils.mkdir_p dir unless File.directory? dir
-        File.open(File.join(dir,"bower.json"), "w") do |f|
+        File.open(File.join(dir, "bower.json"), "w") do |f|
           f.write(dependencies_to_json(data))
         end
       end
     end
 
+    def generate_dotbowerrc
+      contents = JSON.parse(File.read(File.join(@root_path, '.bowerrc'))) rescue {}
+      contents["directory"] = "bower_components/pt"
+      JSON.pretty_generate(contents)
+    end
+
     def write_dotbowerrc
-      groups.map do |g|
-        g_norm = normalize_location_path(g.first, group_assets_path(g))
-        File.open(File.join(g_norm, ".bowerrc"), "w") do |f|
-          f.write(JSON.pretty_generate({:directory => "bower_components/pt"}))
+      groups.map do |group|
+        normalized_group_path = normalize_location_path(group.first, group_assets_path(group))
+        File.open(File.join(normalized_group_path, ".bowerrc"), "w") do |f|
+          f.write(generate_dotbowerrc)
         end
       end
     end
 
     def final_assets_path
-      groups.map do |g|
-        [g.first.to_s, group_assets_path(g)]
+      groups.map do |group|
+        [group.first.to_s, group_assets_path(group)]
       end
     end   
 
     def group_assets_path group
-      group_options = Hash === group.last ? group.last : {:assets_path => @assets_path}
-      group_options[:assets_path]
-    end 
+      group.last[:assets_path]
+    end
 
     private
 
     def add_group(*group)
-      @groups = (groups << group)
+      @groups = (groups << group) and return group
     end
 
     def groups
-      @groups ||= [[:vendor, { :assets_path => @assets_path }]]
+      @groups ||= [default_group]
+    end
+
+    def default_group
+      [:vendor, { :assets_path => @assets_path }]
     end
 
     def dependencies_to_json(data)
@@ -96,9 +103,13 @@ module BowerRails
     end
 
     def assert_asset_path(path)
-      if !path.start_with?('assets', '/assets')
+      unless path.start_with?('assets', '/assets')
         raise ArgumentError, "Assets should be stored in /assets directory, try assets_path 'assets/#{path}' instead"
       end
+    end
+
+    def assert_group_name name
+      raise ArgumentError, "Group name should be :lib or :vendor only" unless [:lib, :vendor].include?(name)
     end
 
     def normalize_location_path(loc, assets_path)
